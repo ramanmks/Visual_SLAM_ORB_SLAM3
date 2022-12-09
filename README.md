@@ -1,10 +1,13 @@
-# Visual_SLAM_ORB_SLAM3
+### Visual_SLAM_ORB_SALM3
 This repository contains all the necessary information and codes required to compile and successfully test run ORB_SLAM3 on an freshly installed system running Ubuntu 20.04
 
+Tip #1:
 
+We use Ubuntu 20.04, henceforth Pangolin, Opencv , and Eigen3 should be installed. Among them, Pangolin and Eigen3 can be easily installed by directly pulling the repository from the Git. Also, it is advised to run Ubuntu as a standalone OS and not using a Virtual Machine. I have experienced a lot of problems on running VM.
 
+As per my experience, Macs with Apple Silicon Processors cannot compile and run ORB_SLAM3 successfully. I've tried using Parallels with a M1 Macbook pro and the translation between the X86 and ARM causes a lot of processes to fail. Hence, it is advised to run this on a X86 System.
 
-I have compiled some of the errors that one may come across while building the ORB_SLAM3 system.
+I'm commenting about some errors that one may come across while building ORB_SLAM3. Prior knowlege about this may prove to be benificial and would simplify the debugging process as well.
 
 ### Error1:
 
@@ -26,10 +29,11 @@ In file included from /usr/local/include/pangolin/utils/signal_slot.h:3,
   109 | constexpr bool is_weak_ptr_compatible_v = detail::is_weak_ptr_compatible<std::decay_t<P>>::value;
 ```
 
-update Cmakelists.txt from -std=c++11 to -std=c++14
 
-```
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX11)
+### **Update Cmakelists.txt from -std=c++11 to -std=c++14**  
+
+```  
+  CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX11)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
@@ -44,18 +48,18 @@ else()
 endif()
 ```
 
-## error2
+### Error 2:
 
-This is an error due to the Eigen version.
+### One might encounter error due to the version of Eigen.
 
 ```
-   ../core/base_edge.h: 33:10: fatal error: Eigen/Core: No such file or directory 
+ ../core/base_edge.h: 33:10: fatal error: Eigen/Core: No such file or directory 
 #include <Eigen/Core>
 ```
 
-Replace all of #include <Eigen/(any packages)> to #include <eigen3/Eigen/(any packages)>
+### For this, Replace all of #include <Eigen/(any packages)> to #include <eigen3/Eigen/(any packages)>
 
-For example:
+Like this:
 
 ```
 #include <Eigen/Core>
@@ -63,13 +67,11 @@ to
 #include <eigen3/Eigen/Core>
 ```
 
+### Now we can move on to install the ORB_SLAM3 on a Freshly installed Ubuntu 20.04 System:
 
+### Install all the dependencies using the commands below:
 
-
-
-# 1. Installation of ORB-SLAM 3 on a fresh installed Ubuntu 20.04
-Install all liberay dependencies.
-```shell
+```
 sudo add-apt-repository "deb http://security.ubuntu.com/ubuntu xenial-security main"
 sudo apt update
 sudo apt-get install build-essential
@@ -78,34 +80,38 @@ sudo apt-get install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libp
 sudo apt-get install libglew-dev libboost-all-dev libssl-dev
 sudo apt install libeigen3-dev
 ```
----
+### Install OpenCV version 3.2.0
 
-### Install OpenCV 3.2.0
-The ORB-SLAM 3 was test by  
-```shell
+```
 cd ~
 mkdir Dev && cd Dev
 git clone https://github.com/opencv/opencv.git
 cd opencv
 git checkout 3.2.0
 ```
-Put the following at the top of header file `gedit ./modules/videoio/src/cap_ffmpeg_impl.hpp`  
-`#define AV_CODEC_FLAG_GLOBAL_HEADER (1 << 22)`  
-`#define CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER`  
-`#define AVFMT_RAWPICTURE 0x0020`  
-and save and close the file
-```shell
+
+### Put the following code at the top of the header file for the file:
+
+```
+gedit ./modules/videoio/src/cap_ffmpeg_impl.hpp
+#define AV_CODEC_FLAG_GLOBAL_HEADER (1 << 22)
+#define CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER
+#define AVFMT_RAWPICTURE 0x0020
+```
+
+Now, save and close the file and then proceed to make and build OpenCV
+
+```
 mkdir build
 cd build
 cmake -D CMAKE_BUILD_TYPE=Release -D WITH_CUDA=OFF -D CMAKE_INSTALL_PREFIX=/usr/local ..
 make -j 3
 sudo make install
 ```
-> If you want to install to conda environment, use `CMAKE_INSTALL_PREFIX=$CONDA_PREFIX` instead.
----
+
 ### Install Pangolin
-Now, we install the Pangolin. I used the commit version 86eb4975fc4fc8b5d92148c2e370045ae9bf9f5d
-```shell
+
+```
 cd ~/Dev
 git clone https://github.com/stevenlovegrove/Pangolin.git
 cd Pangolin 
@@ -115,347 +121,166 @@ cmake .. -D CMAKE_BUILD_TYPE=Release
 make -j 3 
 sudo make install
 ```
-> If you want to install to conda environment, add `CMAKE_INSTALL_PREFIX=$CONDA_PREFIX` instead.
----
-### ORB-SLAM 3
-Now, we install ORB-SLAM3. I used the commit version ef9784101fbd28506b52f233315541ef8ba7af57 tag: v0.3-beta
 
-```shell
+### Now coming to the ORB_SLAM3 installation:
+
+```
 cd ~/Dev
 git clone https://github.com/UZ-SLAMLab/ORB_SLAM3.git 
 cd ORB_SLAM3
 ```
-We need to change the header file `gedit ./include/LoopClosing.h` at line 51  
-from  
-`Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;`  
-to  
-`Eigen::aligned_allocator<std::pair<KeyFrame *const, g2o::Sim3> > > KeyFrameAndPose;`
-in order to make this comiple.  
-Now, we can comiple ORB-SLAM3 and it dependencies as DBoW2 and g2o.  
+We need to change the header file gedit ./include/LoopClosing.h at line 51 from
+
+```
+Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;
+```
+to
+
+```
+Eigen::aligned_allocator<std::pair<KeyFrame *const, g2o::Sim3> > > KeyFrameAndPose; 
+```
+
+In order to make this comiple. Now, we can comiple ORB-SLAM3 and it dependencies as DBoW2 and g2o.
+
 
 Now Simply just run (if you encounter compiler, try to run the this shell script 2 or 3 more time. It works for me.)
-```shell
+
+```
 ./build.sh
 ```
-to install  
 
----
+ In addition, when compiling, I encountered the following error, which puzzled me. We actually need to add the following codes in error causing files. Add it in [directory]/ORB_SLAM3/include/Cameramodels/Kannalabrandt8.h 
 
-# 2. Download test datasets
+ make[2]: *** [CMakeFiles/ORB_SLAM3.dir/src/LocalMapping.cc.o] Error 1
 
-```shell
-cd ~
-mkdir -p Datasets/EuRoc
-cd Datasets/EuRoc/
-wget -c http://robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/machine_hall/MH_01_easy/MH_01_easy.zip
-mkdir MH01
-unzip MH_01_easy.zip -d MH01/
+ ![image](https://user-images.githubusercontent.com/100104834/206598623-ce0b314d-1c54-4be3-97c9-0aa77f24e07a.png)
+
+![image](https://user-images.githubusercontent.com/100104834/206598760-8afbef6d-82dd-4ad7-bbd0-ff0d8683a2e2.png)
+
+### Don't forget to change the opencv version when compiling ./build.sh
+
+![image](https://user-images.githubusercontent.com/100104834/206598929-54d79359-5208-4b51-9f62-e55c919ee0fa.png)
+
+*** I have referenced most of the errors that I encountered while building ORB_SLAM3; for other errors pertaining to this, feel free to do a simple search on the interenet. Most of the solutions to the errors are available in Git and CSDN Repositories.
+
+
+### Testing with Datasets:
+
+1. Download the data set from : https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets#downloads
+
+2. Modify the datasets : Path: ORB_SLAM3/dataset/MH_##/mav0(Example: after MH01 is decompressed, the file name is mav0, create a new MH01 folder in the dataset folder, put mav0 in it, do not modify the file name directly!!!)
+
+3. Double-click to open the script "euroc_examples.sh" in the ORB-SLAM3 source code, and find the instructions containing MH01
+
+![image](https://user-images.githubusercontent.com/100104834/206599776-a2ca2b17-62bc-49e8-848c-678c928d70e3.png)
+
+
+### Installing ROS
+
+For Ubuntu Install ROS Noetic from the Official ROS Website; follow the instructions and copy paste the commands in terminal to install ROS
+
+http://wiki.ros.org/noetic/Installation/Ubuntu
+
+### Using USB_CAMERA for capture in real time.
+
+1. Create a Catkin Workspace
+
 ```
-Similar for another datasets in EuRoc see here [https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets]
-
-
-# 3. Run simulation 
-```shell
-cd ~/Dev/ORB_SLAM3
-# Pick of them below that you want to run
-# Mono
-./Examples/Monocular/mono_euroc ./Vocabulary/ORBvoc.txt ./Examples/Monocular/EuRoC.yaml ~/Datasets/EuRoc/MH01 ./Examples/Monocular/EuRoC_TimeStamps/MH01.txt dataset-MH01_mono
-# Mono + Inertial
-./Examples/Monocular-Inertial/mono_inertial_euroc ./Vocabulary/ORBvoc.txt ./Examples/Monocular-Inertial/EuRoC.yaml ~/Datasets/EuRoc/MH01 ./Examples/Monocular-Inertial/EuRoC_TimeStamps/MH01.txt dataset-MH01_monoi
-# Stereo
-./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC.yaml ~/Datasets/EuRoc/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
-# Stereo + Inertial
-./Examples/Stereo-Inertial/stereo_inertial_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo-Inertial/EuRoC.yaml ~/Datasets/EuRoc/MH01 ./Examples/Stereo-Inertial/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereoi
-```
-
-# 4 Validation Estimate vs Ground True
-We need numpy and matplotlib installed in pytho2.7. But Ubuntu20.04 has not pip2.7
-```shell
-sudo apt install curl
-cd ~/Desktop
-curl https://bootstrap.pypa.io/2.7/get-pip.py --output get-pip.py
-sudo python2 get-pip.py
-pip2.7 install numpy matplotlib
-```
-
-**Run and plot Ground true**
-```
-cd ~/Dev/ORB_SLAM3
-./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC.yaml ~/Datasets/EuRoc/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+catkin_init_workspace
 ```
 
-**Plot estimate vs Ground true**
-```
-cd ~/Dev/ORB_SLAM3
-python evaluation/evaluate_ate_scale.py evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt f_dataset-MH01_stereo.txt --plot MH01_stereo.pdf
-```
+Compile the Workspace:
 
-open the pdf `MH01_stereo.pdf` and you see the 
-
-# 5 Some comments
-1. You should download more datasets from EuRoc to see more 
-
-2. The support of inertial measurement unit (IMU) has incredibally increse the accuracy although it is alreday very accurate without IMU.
-
-
-## 2. Using ROS with ORB_SLAM3 to connect to USB_CAMERA for real time measurements:
-
-- Clone the package. Note that it should be a `catkin build` workspace.
-```
-cd ~/catkin_ws/src/
-git clone https://github.com/thien94/orb_slam3_ros_wrapper.git
-```
-
-- Open `CMakeLists.txt` and change the directory that leads to ORB-SLAM3 library at the beginning of the file (default is home folder `~/`)
-```
-cd ~/catkin_ws/src/orb_slam3_ros_wrapper/
-nano CMakeLists.txt
-# Change this to your installation of ORB-SLAM3. Default is ~/
-set(ORB_SLAM3_DIR
-   $ENV{HOME}/ORB_SLAM3
-)
-```
-
-- Build the package normally.
 ```
 cd ~/catkin_ws/
-catkin build
+catkin_make
+source devel/setup.bash
 ```
 
-- Next, copy the `ORBvoc.txt` file from `ORB-SLAM3/Vocabulary/` folder to the `config` folder in this package. Alternatively, you can change the `voc_file` param in the launch file to point to the right location.
+Download the camera source code from : https://github.com/ros-drivers/usb_cam
 
-- (Optional) Install `hector-trajectory-server` to visualize the trajectory.
+Unzip the package and put it in the above src
+
+![image](https://user-images.githubusercontent.com/100104834/206600915-4a5838fc-bb16-4bf1-afaa-556869efe3c1.png)
+
+### To launch camera using ROS
+
 ```
-sudo apt install ros-[DISTRO]-hector-trajectory-server
-```
-
-- If everything works fine, you can now try the different launch files in the `launch` folder.
-
-## 3. How to run
-
-### EuRoC dataset:
-
-- In one terminal, launch the node:
-```
-roslaunch orb_slam3_ros_wrapper euroc_monoimu.launch
-```
-- In another terminal, playback the bag:
-```
-rosbag play MH_01_easy.bag
-```
-Similarly for other sensor types.
-
-
-
-# The rest is the original information
-
-# ORB-SLAM3
-
-### V0.3: Beta version, 4 Sep 2020
-**Authors:** Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, [José M. M. Montiel](http://webdiis.unizar.es/~josemari/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/).
-
-The [Changelog](https://github.com/UZ-SLAMLab/ORB_SLAM3/Changelog.md) describes the features of each version.
-
-ORB-SLAM3 is the first real-time SLAM library able to perform **Visual, Visual-Inertial and Multi-Map SLAM** with **monocular, stereo and RGB-D** cameras, using **pin-hole and fisheye** lens models. In all sensor configurations, ORB-SLAM3 is as robust as the best systems available in the literature, and significantly more accurate. 
-
-We provide examples to run ORB-SLAM3 in the [EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) using stereo or monocular, with or without IMU, and in the [TUM-VI dataset](https://vision.in.tum.de/data/datasets/visual-inertial-dataset) using fisheye stereo or monocular, with or without IMU. Videos of some example executions can be found at [ORB-SLAM3 channel](https://www.youtube.com/channel/UCXVt-kXG6T95Z4tVaYlU80Q).
-
-This software is based on [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2) developed by [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2)).
-
-<a href="https://youtu.be/HyLNq-98LRo" target="_blank"><img src="https://img.youtube.com/vi/HyLNq-98LRo/0.jpg" 
-alt="ORB-SLAM3" width="240" height="180" border="10" /></a>
-
-### Related Publications:
-
-[ORB-SLAM3] Carlos Campos, Richard Elvira, Juan J. Gómez Rodríguez, José M. M. Montiel and Juan D. Tardós, **ORB-SLAM3: An Accurate Open-Source Library for Visual, Visual-Inertial and Multi-Map SLAM**, Under review. **[PDF](https://arxiv.org/pdf/2007.11898.pdf)**.
-
-[IMU-Initialization] Carlos Campos, J. M. M. Montiel and Juan D. Tardós, **Inertial-Only Optimization for Visual-Inertial Initialization**, *ICRA 2020*. **[PDF](https://arxiv.org/pdf/2003.05766.pdf)**
-
-[ORBSLAM-Atlas] Richard Elvira, J. M. M. Montiel and Juan D. Tardós, **ORBSLAM-Atlas: a robust and accurate multi-map system**, *IROS 2019*. **[PDF](https://arxiv.org/pdf/1908.11585.pdf)**.
-
-[ORBSLAM-VI] Raúl Mur-Artal, and Juan D. Tardós, **Visual-inertial monocular SLAM with map reuse**, IEEE Robotics and Automation Letters, vol. 2 no. 2, pp. 796-803, 2017. **[PDF](https://arxiv.org/pdf/1610.05949.pdf)**. 
-
-[Stereo and RGB-D] Raúl Mur-Artal and Juan D. Tardós. **ORB-SLAM2: an Open-Source SLAM System for Monocular, Stereo and RGB-D Cameras**. *IEEE Transactions on Robotics,* vol. 33, no. 5, pp. 1255-1262, 2017. **[PDF](https://arxiv.org/pdf/1610.06475.pdf)**.
-
-[Monocular] Raúl Mur-Artal, José M. M. Montiel and Juan D. Tardós. **ORB-SLAM: A Versatile and Accurate Monocular SLAM System**. *IEEE Transactions on Robotics,* vol. 31, no. 5, pp. 1147-1163, 2015. (**2015 IEEE Transactions on Robotics Best Paper Award**). **[PDF](https://arxiv.org/pdf/1502.00956.pdf)**.
-
-[DBoW2 Place Recognition] Dorian Gálvez-López and Juan D. Tardós. **Bags of Binary Words for Fast Place Recognition in Image Sequences**. *IEEE Transactions on Robotics,* vol. 28, no. 5, pp. 1188-1197, 2012. **[PDF](http://doriangalvez.com/php/dl.php?dlp=GalvezTRO12.pdf)**
-
-# 1. License
-
-ORB-SLAM3 is released under [GPLv3 license](https://github.com/UZ-SLAMLab/ORB_SLAM3/LICENSE). For a list of all code/library dependencies (and associated licenses), please see [Dependencies.md](https://github.com/UZ-SLAMLab/ORB_SLAM3/blob/master/Dependencies.md).
-
-For a closed-source version of ORB-SLAM3 for commercial purposes, please contact the authors: orbslam (at) unizar (dot) es.
-
-If you use ORB-SLAM3 in an academic work, please cite:
-
-    @article{ORBSLAM3_2020,
-      title={{ORB-SLAM3}: An Accurate Open-Source Library for Visual, Visual-Inertial 
-               and Multi-Map {SLAM}},
-      author={Campos, Carlos AND Elvira, Richard AND G\´omez, Juan J. AND Montiel, 
-              Jos\'e M. M. AND Tard\'os, Juan D.},
-      journal={arXiv preprint arXiv:2007.11898},
-      year={2020}
-     }
-
-# 2. Prerequisites
-We have tested the library in **Ubuntu 16.04** and **18.04**, but it should be easy to compile in other platforms. A powerful computer (e.g. i7) will ensure real-time performance and provide more stable and accurate results.
-
-## C++11 or C++0x Compiler
-We use the new thread and chrono functionalities of C++11.
-
-## Pangolin
-We use [Pangolin](https://github.com/stevenlovegrove/Pangolin) for visualization and user interface. Dowload and install instructions can be found at: https://github.com/stevenlovegrove/Pangolin.
-
-## OpenCV
-We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload and install instructions can be found at: http://opencv.org. **Required at leat 3.0. Tested with OpenCV 3.2.0**.
-
-## Eigen3
-Required by g2o (see below). Download and install instructions can be found at: http://eigen.tuxfamily.org. **Required at least 3.1.0**.
-
-## DBoW2 and g2o (Included in Thirdparty folder)
-We use modified versions of the [DBoW2](https://github.com/dorian3d/DBoW2) library to perform place recognition and [g2o](https://github.com/RainerKuemmerle/g2o) library to perform non-linear optimizations. Both modified libraries (which are BSD) are included in the *Thirdparty* folder.
-
-## Python
-Required to calculate the alignment of the trajectory with the ground truth. **Required Numpy module**.
-
-* (win) http://www.python.org/downloads/windows
-* (deb) `sudo apt install libpython2.7-dev`
-* (mac) preinstalled with osx
-
-## ROS (optional)
-
-We provide some examples to process input of a monocular, monocular-inertial, stereo, stereo-inertial or RGB-D camera using ROS. Building these examples is optional. These have been tested with ROS Melodic under Ubuntu 18.04.
-
-# 3. Building ORB-SLAM3 library and examples
-
-Clone the repository:
-```
-git clone https://github.com/UZ-SLAMLab/ORB_SLAM3.git ORB_SLAM3
+//Open a Fresh terminal and invoke roscore
+roscore
+// In another terminal
+cd catkin_ws
+catkin_make
+roslaunch usb_cam usb_cam-test.launch
 ```
 
-We provide a script `build.sh` to build the *Thirdparty* libraries and *ORB-SLAM3*. Please make sure you have installed all required dependencies (see section 2). Execute:
+ Camera parameters can be changed in usb_cam-test.launch
+
+ ![image](https://user-images.githubusercontent.com/100104834/206601312-d55afada-266c-41e6-82f9-ab854cda6809.png)
+
+![image](https://user-images.githubusercontent.com/100104834/206601397-16a504e8-558a-4829-ba6c-9482b13d197b.png)
+
+Open another window and enter rqt_graph to view the message, and see that the usb_cam node has published a message to /usb_cam/image_raw, image_view has subscribed to the message, and the content of the message is the image frame, which is displayed by the image_view
+
+![image](https://user-images.githubusercontent.com/100104834/206601486-ec2ea3a8-4909-4a1b-a4c9-6a17bc9cc391.png)
+
+
+### Calibration of the Monocular Camera
+
+For this project, I used a monocular camera for the capture. The camera needs to be calibrated in order to effectively communicate with the ORB_SLAM3 to produce tangible results during the capture
+
 ```
-cd ORB_SLAM3
-chmod +x build.sh
-./build.sh
+sudo apt-get install ros-noetic-camera-calibration
+roslaunch usb_cam usb_cam-test.launch
+rosrun camera_calibration cameracalibrator.py --size 8x6 --square 0.024 image:=/usb_cam/image_raw camera:=/usb_cam
+```
+The cameracalibrator.py calibration program requires the following input parameters.
+1) size: calibrate the number of internal corners of the checkerboard, how many rows are there in the chessboard used here, and each row has an internal corner.
+2) square: This parameter corresponds to the side length of each checkerboard, in meters.
+3) image and camera: set the topic of images released by the camera.
+
+Move the board according to x (left and right), y (up and down), size (front and back), skew (tilt), etc., until the progress bars of x, y, size, and skew all turn into green positions.
+
+![image](https://user-images.githubusercontent.com/100104834/206602007-93f9f285-233c-49e3-9040-682f4f77d210.png)
+
+Press the CALIBRATE button when all the tabs are green and wait for the calibration to end.
+
+After finishing, click SAVE, and then COMMIT, there will be a calibration result yaml file address after the terminal. 
+
+After opening, modify it according to the format of Asus.yaml, name it xx (custom name).yaml, copy it to the /home/xxx/src/ORB_SLAM3/Examples/ROS/ORB_SLAM3 directory, and the calibration is completed.
+
+![image](https://user-images.githubusercontent.com/100104834/206602228-632f299d-0374-46bd-92bc-b0fd002872f1.png)
+
+Note: The default rosrun is to call /usr/bin/python, but my Ubuntu20.04 does not have that file, only python2, python3, python3.8, this time I found the cameracalibrator.py file, under normal circumstances, the location should be / opt/ros/noetic/lib/camera_calibration/cameracalibrator.py, after opening and editing with sudo vim cameracalibrator.py, change the first line to:
+
+![image](https://user-images.githubusercontent.com/100104834/206602308-749532ca-9280-465f-8c06-74d7071792a3.png)
+
+Now, we can use ROS to start the USB_CAM node and after the successful installation of all the other components we can run the ORB_SLAM3 in real time.
+
+```
+roscore
+roslaunch usb_cam usb_cam-test.launch
+rosrun ORB_SLAM3 Mono /home//Dev/ORB_SLAM3/Vocabulary/ORBvoc.txt /home/linux/Dev/ORB_SLAM3/xxx.yaml
 ```
 
-This will create **libORB_SLAM3.so**  at *lib* folder and the executables in *Examples* folder.
+If it does not work, add ORB_SALM3 as a node:
 
-# 4. EuRoC Examples
-[EuRoC dataset](http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) was recorded with two pinhole cameras and an inertial sensor. We provide an example script to launch EuRoC sequences in all the sensor configurations.
-
-1. Download a sequence (ASL format) from http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets
-
-2. Open the script "euroc_examples.sh" in the root of the project. Change **pathDatasetEuroc** variable to point to the directory where the dataset has been uncompressed. 
-
-3. Execute the following script to process all the sequences with all sensor configurations:
 ```
-./euroc_examples
+vim ~/.bashrc
+source /opt/ros/noetic/setup.bash
+source /home/linux/catkin_ws/devel/setup.bash
+export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/home/xxx/Dev/ORB_SLAM3/Examples/ROS
+source ~/.bashrc
+sudo vim /opt/ros/noetic/setup.sh
+source /home/linux/catkin_ws/devel/setup.bash
+export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/home/xxx/Dev/ORB_SLAM3/Examples/ROS
+source /opt/ros/noetic/setup.sh
 ```
+![image](https://user-images.githubusercontent.com/100104834/206610319-5d05abdc-833c-4b50-8a09-f4204e71b077.png)
 
-## Evaluation
-EuRoC provides ground truth for each sequence in the IMU body reference. As pure visual executions report trajectories centered in the left camera, we provide in the "evaluation" folder the transformation of the ground truth to the left camera reference. Visual-inertial trajectories use the ground truth from the dataset.
+Explanation: When compiling the usb camera node, the source code was put into the src of the workspace and then compiled. Now there is a ROS node in SLAM3. After compiling ./build_ros.sh, it should be directly used , and if you want to use the usb camera, you need to change the following files and recompile ./build_ros.sh
 
-Execute the following script to process sequences and compute the RMS ATE:
-```
-./euroc_eval_examples
-```
 
-# 5. TUM-VI Examples
-[TUM-VI dataset](https://vision.in.tum.de/data/datasets/visual-inertial-dataset) was recorded with two fisheye cameras and an inertial sensor.
-
-1. Download a sequence from https://vision.in.tum.de/data/datasets/visual-inertial-dataset and uncompress it.
-
-2. Open the script "tum_vi_examples.sh" in the root of the project. Change **pathDatasetTUM_VI** variable to point to the directory where the dataset has been uncompressed. 
-
-3. Execute the following script to process all the sequences with all sensor configurations:
-```
-./tum_vi_examples
-```
-
-## Evaluation
-In TUM-VI ground truth is only available in the room where all sequences start and end. As a result the error measures the drift at the end of the sequence. 
-
-Execute the following script to process sequences and compute the RMS ATE:
-```
-./tum_vi_eval_examples
-```
-
-# 6. ROS Examples
-
-### Building the nodes for mono, mono-inertial, stereo, stereo-inertial and RGB-D
-Tested with ROS Melodic and ubuntu 18.04.
-
-1. Add the path including *Examples/ROS/ORB_SLAM3* to the ROS_PACKAGE_PATH environment variable. Open .bashrc file:
-  ```
-  gedit ~/.bashrc
-  ```
-and add at the end the following line. Replace PATH by the folder where you cloned ORB_SLAM3:
-
-  ```
-  export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:PATH/ORB_SLAM3/Examples/ROS
-  ```
-  
-2. Execute `build_ros.sh` script:
-
-  ```
-  chmod +x build_ros.sh
-  ./build_ros.sh
-  ```
-  
-### Running Monocular Node
-For a monocular input from topic `/camera/image_raw` run node ORB_SLAM3/Mono. You will need to provide the vocabulary file and a settings file. See the monocular examples above.
-
-  ```
-  rosrun ORB_SLAM3 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
-  ```
-
-### Running Monocular-Inertial Node
-For a monocular input from topic `/camera/image_raw` and an inertial input from topic `/imu`, run node ORB_SLAM3/Mono_Inertial. Setting the optional third argument to true will apply CLAHE equalization to images (Mainly for TUM-VI dataset).
-
-  ```
-  rosrun ORB_SLAM3 Mono PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE [EQUALIZATION]	
-  ```
-
-### Running Stereo Node
-For a stereo input from topic `/camera/left/image_raw` and `/camera/right/image_raw` run node ORB_SLAM3/Stereo. You will need to provide the vocabulary file and a settings file. For Pinhole camera model, if you **provide rectification matrices** (see Examples/Stereo/EuRoC.yaml example), the node will recitify the images online, **otherwise images must be pre-rectified**. For FishEye camera model, rectification is not required since system works with original images:
-
-  ```
-  rosrun ORB_SLAM3 Stereo PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION
-  ```
-
-### Running Stereo-Inertial Node
-For a stereo input from topics `/camera/left/image_raw` and `/camera/right/image_raw`, and an inertial input from topic `/imu`, run node ORB_SLAM3/Stereo_Inertial. You will need to provide the vocabulary file and a settings file, including rectification matrices if required in a similar way to Stereo case:
-
-  ```
-  rosrun ORB_SLAM3 Stereo_Inertial PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE ONLINE_RECTIFICATION [EQUALIZATION]	
-  ```
-  
-### Running RGB_D Node
-For an RGB-D input from topics `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw`, run node ORB_SLAM3/RGBD. You will need to provide the vocabulary file and a settings file. See the RGB-D example above.
-
-  ```
-  rosrun ORB_SLAM3 RGBD PATH_TO_VOCABULARY PATH_TO_SETTINGS_FILE
-  ```
-
-**Running ROS example:** Download a rosbag (e.g. V1_02_medium.bag) from the EuRoC dataset (http://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets). Open 3 tabs on the terminal and run the following command at each tab for a Stereo-Inertial configuration:
-  ```
-  roscore
-  ```
-  
-  ```
-  rosrun ORB_SLAM3 Stereo_Inertial Vocabulary/ORBvoc.txt Examples/Stereo-Inertial/EuRoC.yaml true
-  ```
-  
-  ```
-  rosbag play --pause V1_02_medium.bag /cam0/image_raw:=/camera/left/image_raw /cam1/image_raw:=/camera/right/image_raw /imu0:=/imu
-  ```
-  
-Once ORB-SLAM3 has loaded the vocabulary, press space in the rosbag tab.
-
-**Remark:** For rosbags from TUM-VI dataset, some play issue may appear due to chunk size. One possible solution is to rebag them with the default chunk size, for example:
-  ```
-  rosrun rosbag fastrebag.py dataset-room1_512_16.bag dataset-room1_512_16_small_chunks.bag
-  ```
+![image](https://user-images.githubusercontent.com/100104834/206610398-1fbe963f-a19e-481b-bfa1-9e172278644e.png)
