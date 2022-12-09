@@ -197,6 +197,56 @@ open the pdf `MH01_stereo.pdf` and you see the
 
 2. The support of inertial measurement unit (IMU) has incredibally increse the accuracy although it is alreday very accurate without IMU.
 
+
+## 2. Using ROS with ORB_SLAM3 to connect to USB_CAMERA for real time measurements:
+
+- Clone the package. Note that it should be a `catkin build` workspace.
+```
+cd ~/catkin_ws/src/
+git clone https://github.com/thien94/orb_slam3_ros_wrapper.git
+```
+
+- Open `CMakeLists.txt` and change the directory that leads to ORB-SLAM3 library at the beginning of the file (default is home folder `~/`)
+```
+cd ~/catkin_ws/src/orb_slam3_ros_wrapper/
+nano CMakeLists.txt
+# Change this to your installation of ORB-SLAM3. Default is ~/
+set(ORB_SLAM3_DIR
+   $ENV{HOME}/ORB_SLAM3
+)
+```
+
+- Build the package normally.
+```
+cd ~/catkin_ws/
+catkin build
+```
+
+- Next, copy the `ORBvoc.txt` file from `ORB-SLAM3/Vocabulary/` folder to the `config` folder in this package. Alternatively, you can change the `voc_file` param in the launch file to point to the right location.
+
+- (Optional) Install `hector-trajectory-server` to visualize the trajectory.
+```
+sudo apt install ros-[DISTRO]-hector-trajectory-server
+```
+
+- If everything works fine, you can now try the different launch files in the `launch` folder.
+
+## 3. How to run
+
+### EuRoC dataset:
+
+- In one terminal, launch the node:
+```
+roslaunch orb_slam3_ros_wrapper euroc_monoimu.launch
+```
+- In another terminal, playback the bag:
+```
+rosbag play MH_01_easy.bag
+```
+Similarly for other sensor types.
+
+
+
 # The rest is the original information
 
 # ORB-SLAM3
